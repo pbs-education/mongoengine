@@ -247,7 +247,7 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
                 id_field = id_field or base._meta.get('id_field')
                 base_indexes += base._meta.get('indexes', [])
 
-        meta = {
+        default_meta = {
             'collection': collection,
             'max_documents': None,
             'max_size': None,
@@ -259,10 +259,14 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
             'index_opts': {},
             'queryset_class': QuerySet,
         }
+
+        meta = attrs.get('_meta', {})
+        for key, value in default_meta.items():
+            if key not in meta:
+                meta[key] = value
+
         meta.update(base_meta)
 
-        # Apply document-defined meta options
-        meta.update(attrs.get('meta', {}))
         attrs['_meta'] = meta
 
         # Set up collection manager, needs the class to have fields so use
@@ -272,6 +276,8 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
         # Provide a default queryset unless one has been manually provided
         if not hasattr(new_class, 'objects'):
             new_class.objects = QuerySetManager()
+        if not hasattr(new_class, '_default_manager'):
+            new_class._default_manager = QuerySetManager()
 
         user_indexes = [QuerySet._build_index_spec(new_class, spec)
                         for spec in meta['indexes']] + base_indexes
