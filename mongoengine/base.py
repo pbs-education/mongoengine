@@ -21,11 +21,11 @@ class BaseField(object):
     may be added to subclasses of `Document` to define a document's schema.
     """
 
-    # Fields may have _types inserted into indexes by default 
+    # Fields may have _types inserted into indexes by default
     _index_with_types = True
     _geo_index = False
 
-    def __init__(self, db_field=None, name=None, required=False, default=None, 
+    def __init__(self, db_field=None, name=None, required=False, default=None,
                  unique=False, unique_with=None, primary_key=False,
                  validation=None, choices=None):
         self.db_field = (db_field or name) if not primary_key else '_id'
@@ -43,7 +43,7 @@ class BaseField(object):
         self.choices = choices
 
     def __get__(self, instance, owner):
-        """Descriptor for retrieving a value from a field in a document. Do 
+        """Descriptor for retrieving a value from a field in a document. Do
         any necessary conversion between Python and MongoDB types.
         """
         if instance is None:
@@ -153,8 +153,8 @@ class DocumentMetaclass(type):
                 superclasses.update(base._superclasses)
 
             if hasattr(base, '_meta'):
-                # Ensure that the Document class may be subclassed - 
-                # inheritance may be disabled to remove dependency on 
+                # Ensure that the Document class may be subclassed -
+                # inheritance may be disabled to remove dependency on
                 # additional fields _cls and _types
                 if base._meta.get('allow_inheritance', True) == False:
                     raise ValueError('Document %s may not be subclassed' %
@@ -193,12 +193,12 @@ class DocumentMetaclass(type):
 
         module = attrs.get('__module__')
 
-        base_excs = tuple(base.DoesNotExist for base in bases 
+        base_excs = tuple(base.DoesNotExist for base in bases
                           if hasattr(base, 'DoesNotExist')) or (DoesNotExist,)
         exc = subclass_exception('DoesNotExist', base_excs, module)
         new_class.add_to_class('DoesNotExist', exc)
 
-        base_excs = tuple(base.MultipleObjectsReturned for base in bases 
+        base_excs = tuple(base.MultipleObjectsReturned for base in bases
                           if hasattr(base, 'MultipleObjectsReturned'))
         base_excs = base_excs or (MultipleObjectsReturned,)
         exc = subclass_exception('MultipleObjectsReturned', base_excs, module)
@@ -220,9 +220,9 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
 
     def __new__(cls, name, bases, attrs):
         super_new = super(TopLevelDocumentMetaclass, cls).__new__
-        # Classes defined in this package are abstract and should not have 
+        # Classes defined in this package are abstract and should not have
         # their own metadata with DB collection, etc.
-        # __metaclass__ is only set on the class with the __metaclass__ 
+        # __metaclass__ is only set on the class with the __metaclass__
         # attribute (i.e. it is not set on subclasses). This differentiates
         # 'real' documents from the 'Document' class
         if attrs.get('__metaclass__') == TopLevelDocumentMetaclass:
@@ -329,6 +329,10 @@ class TopLevelDocumentMetaclass(DocumentMetaclass):
             new_class._fields['id'] = ObjectIdField(db_field='_id')
             new_class.id = new_class._fields['id']
 
+        class Dummy(object):
+            name = new_class._meta['id_field']
+        new_class.pk = Dummy()
+
         return new_class
 
 
@@ -353,7 +357,7 @@ class BaseDocument(object):
         are present.
         """
         # Get a list of tuples of field names and their current values
-        fields = [(field, getattr(self, name)) 
+        fields = [(field, getattr(self, name))
                   for name, field in self._fields.items()]
 
         # Ensure that each field is matched to a valid value
@@ -382,19 +386,8 @@ class BaseDocument(object):
             all_subclasses.update(subclass._get_subclasses())
         return all_subclasses
 
-    @apply
-    def pk():
-        """Primary key alias
-        """
-        def fget(self):
-            return getattr(self, self._meta['id_field'])
-        def fset(self, value):
-            return setattr(self, self._meta['id_field'], value)
-        return property(fget, fset)
-
     def __iter__(self):
         return iter(self._fields)
-
     def __getitem__(self, name):
         """Dictionary-style field access, return a field's value if present.
         """
