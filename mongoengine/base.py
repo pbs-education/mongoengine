@@ -185,6 +185,12 @@ class DocumentMetaclass(type):
                 if not attr_value.db_field:
                     attr_value.db_field = attr_name
                 doc_fields[attr_name] = attr_value
+            elif hasattr(attr_value, 'contribute_field_to_class'):
+                contrib_name, contrib_field = attr_value.contribute_field_to_class(attr_name)
+                contrib_field.name = contrib_name
+                if not contrib_field.db_field:
+                    contrib_field.db_field = contrib_name
+                doc_fields[contrib_name] = contrib_field
         attrs['_fields'] = doc_fields
 
         new_class = super_new(cls, name, bases, attrs)
