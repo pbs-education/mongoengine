@@ -3,6 +3,8 @@ from base import (DocumentMetaclass, TopLevelDocumentMetaclass, BaseDocument,
 from queryset import OperationError
 from connection import _get_db
 
+from bson.dbref import DBRef
+import operator
 import pymongo
 
 
@@ -17,6 +19,29 @@ class EmbeddedDocument(BaseDocument):
     """
 
     __metaclass__ = DocumentMetaclass
+
+    def __eq__(self, obj):
+        if obj.__class__ != self.__class__:
+            return False
+
+        for key in self._fields.keys():
+            if self._data.get(key, None) != obj._data.get(key, None):
+                return False
+
+        return True
+
+    def __hash__(self):
+        # pymongo (and bson) have a bug in their __hash__ method for DBRef objects
+        # and they try and hash the DBRef.kwargs which is a dictionary and not hashable
+        # so we need to override this method to provide a tuple of the DBRef kwargs.
+        # Once this bug goes away we can use:
+        # return hash(tuple(self._data.values()))
+        return hash(tuple([
+            isinstance(x, DBRef)\
+                    and (x._DBRef__collection, x._DBRef__id, x._DBRef__database, tuple(x._DBRef__kwargs.items()))\
+                    or x
+            for x in self._data.values()
+            ]))
 
 
 class Document(BaseDocument):
