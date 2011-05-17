@@ -36,12 +36,15 @@ class EmbeddedDocument(BaseDocument):
         # so we need to override this method to provide a tuple of the DBRef kwargs.
         # Once this bug goes away we can use:
         # return hash(tuple(self._data.values()))
-        return hash(tuple([
-            isinstance(x, DBRef)\
-                    and (x._DBRef__collection, x._DBRef__id, x._DBRef__database, tuple(x._DBRef__kwargs.items()))\
-                    or x
-            for x in self._data.values()
-            ]))
+        parts = []
+        for x in self._data.values():
+            if isinstance(x, DBRef):
+                parts.append(tuple([x._DBRef__collection, x._DBRef__id, x._DBRef__database, tuple(x._DBRef__kwargs.items())]))
+            elif isinstance(x, list):
+                parts.append(tuple(x))
+            else:
+                parts.append(x)
+        return hash(tuple(parts))
 
 
 class Document(BaseDocument):
