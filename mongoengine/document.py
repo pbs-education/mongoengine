@@ -41,7 +41,7 @@ class EmbeddedDocument(BaseDocument):
             if isinstance(x, DBRef):
                 parts.append(tuple([str(x._DBRef__collection), x._DBRef__id, x._DBRef__database, tuple(x._DBRef__kwargs.items())]))
             elif isinstance(x, Document):
-                parts.append(tuple([str(x._meta['collection']), x._id, None, tuple()]))
+                parts.append(tuple([str(x._meta['collection']), x.id, None, tuple()]))
             elif isinstance(x, list):
                 parts.append(tuple(x))
             else:
