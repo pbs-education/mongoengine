@@ -24,11 +24,11 @@ class EmbeddedDocument(BaseDocument):
         if obj.__class__ != self.__class__:
             return False
 
-        for key in self._fields.keys():
-            if self._data.get(key, None) != obj._data.get(key, None):
-                return False
-
-        return True
+        # We need to ensure that all of the data fields on this object
+        # are equal to all the data field values on the other object
+        # so lets rely on the the hash function that already deals with the
+        # oddities of DBRef derefences
+        return hash(self) == hash(obj)
 
     def __hash__(self):
         # pymongo (and bson) have a bug in their __hash__ method for DBRef objects
@@ -39,7 +39,9 @@ class EmbeddedDocument(BaseDocument):
         parts = []
         for x in self._data.values():
             if isinstance(x, DBRef):
-                parts.append(tuple([x._DBRef__collection, x._DBRef__id, x._DBRef__database, tuple(x._DBRef__kwargs.items())]))
+                parts.append(tuple([str(x._DBRef__collection), x._DBRef__id, x._DBRef__database, tuple(x._DBRef__kwargs.items())]))
+            elif isinstance(x, Document):
+                parts.append(tuple([str(x._meta['collection']), x._id, None, tuple()]))
             elif isinstance(x, list):
                 parts.append(tuple(x))
             else:
