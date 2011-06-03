@@ -12,6 +12,20 @@ import itertools
 __all__ = ['queryset_manager', 'Q', 'InvalidQueryError',
            'InvalidCollectionError']
 
+try:
+    # Support Python 2.5
+    product = itertools.product
+except AttributeError:
+    def product(*args, **kwds):
+        # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
+        # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
+        pools = map(tuple, args) * kwds.get('repeat', 1)
+        result = [[]]
+        for pool in pools:
+            result = [x+[y] for x in result for y in pool]
+        for prod in result:
+            yield tuple(prod)
+
 # The maximum number of items to display in a QuerySet.__repr__
 REPR_OUTPUT_SIZE = 20
 
@@ -114,7 +128,7 @@ class QueryTreeTransformerVisitor(QNodeVisitor):
             # the necessary parts. Then for each $or part, create a new query
             # that ANDs the necessary part with the $or part.
             clauses = []
-            for or_group in itertools.product(*or_groups):
+            for or_group in product(*or_groups):
                 q_object = reduce(lambda a, b: a & b, and_parts, Q())
                 q_object = reduce(lambda a, b: a & b, or_group, q_object)
                 clauses.append(q_object)
